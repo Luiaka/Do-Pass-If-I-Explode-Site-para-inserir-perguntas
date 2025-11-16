@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do I pass if I explode? - Sistema de Questões</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+    }
+
+    #topo {
+        background-color: #000;
+        color: white;
+        padding: 40px 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+        text-align: center;
+    }
+    #topo h2 { margin: 0; font-size: 32px; }
+    #topo p { margin: 0; font-size: 18px; }
+
+    #container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 30px;
+        padding: 20px;
+    }
+
+    #formulario, #visor {
+        flex: 1 1 350px;
+        padding: 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    #formulario h2 { margin-top: 0; }
+
+    #formulario input, #formulario select, #formulario textarea {
+        width: 100%;
+        margin-top: 5px;
+        margin-bottom: 18px;
+        font-size: 16px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+    #formulario button {
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        border: none;
+        margin-top: 10px;
+    }
+
+    #importarSQL { background:#888; color:white; width: 100%; }
+    #exportarSQL { background:#2bff7a; color:black; width: 100%; margin-top:10px; }
+
+    #visor h3 { margin-top: 0; }
+
+    .campo {
+        background: #f3f7ff;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .btn { padding: 10px 15px; border-radius: 6px; cursor: pointer; border: none; font-size: 15px; }
+    .btn-edit { background: #4a7dff; color: white; }
+    .btn-del { background: #ff5c5c; color: white; }
+    .btn-nav { background: #ddd; }
+
+    #navegacao {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    @media (max-width: 600px) {
+        #topo h2 { font-size: 26px; }
+        #topo p { font-size: 16px; }
+    }
+
+</style>
+</head>
+<body>
+
+<div id="topo">
+    <h2>Do I pass if I explode?</h2>
+    <p>Sistema de Inserção e Navegação de Perguntas</p>
+</div>
+
+<div id="container">
+
+    <!-- FORMULÁRIO -->
+    <form id="formulario" onsubmit="event.preventDefault(); salvar();">
+        <h2>Inserir / Editar Pergunta</h2>
+
+        <label>Número da questão:</label>
+        <input type="number" id="nquestao">
+
+        <label>Questão (enunciado):</label>
+        <textarea id="questao"></textarea>
+
+        <label>Matéria:</label>
+        <select id="materia">
+            <option></option>
+            <option value="Matemática">Matemática</option>
+            <option value="História">História</option>
+            <option value="Sociologia">Sociologia</option>
+        </select>
+
+        <label>Escolaridade:</label>
+        <select id="escolaridade">
+            <option></option>
+            <option value="1EM">1º ano</option>
+            <option value="2EM">2º ano</option>
+            <option value="3EM">3º ano</option>
+        </select>
+
+        <label>Puzzle:</label>
+        <select id="puzzle">
+            <option></option>
+            <option value="1">Puzzle #1</option>
+            <option value="2">Puzzle #2</option>
+            <option value="3">Puzzle #3</option>
+        </select>
+
+        <label>Arquivo anexo:</label>
+        <input type="file" id="arquivo">
+
+        <button type="submit" style="background:#4a7dff;color:white;width:100%;">Salvar</button>
+
+        <input type="file" id="arquivoImportar" accept=".sql" style="display:none">
+
+        <button type="button" id="importarSQL">Importar .SQL</button>
+        <button type="button" id="exportarSQL">Exportar .SQL</button>
+
+    </form>
+
+    <!-- VISOR -->
+    <div id="visor">
+        <h3>Visualizador de Perguntas</h3>
+        <div id="conteudoVisor">Nenhuma pergunta cadastrada ainda.</div>
+
+        <div id="navegacao">
+            <button class="btn btn-nav" onclick="anterior()">◀ Anterior</button>
+            <button class="btn btn-nav" onclick="proxima()">Próxima ▶</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+let index = 0;
+let editando = -1;
+
+/* ========= SALVAR ========= */
+function salvar() {
+    let dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+
+    const arquivoInput = document.getElementById("arquivo").files[0];
+    if (arquivoInput) {
+        const reader = new FileReader();
+        reader.onload = e => salvarFinal(e.target.result);
+        reader.readAsDataURL(arquivoInput);
+    } else salvarFinal(null);
+}
+
+function salvarFinal(arquivoBase64) {
+    let dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+
+    const item = {
+        nquestao: document.getElementById("nquestao").value,
+        questao: document.getElementById("questao").value,
+        materia: document.getElementById("materia").value,
+        escolaridade: document.getElementById("escolaridade").value,
+        puzzle: document.getElementById("puzzle").value,
+        arquivo: arquivoBase64
+    };
+
+    if (editando === -1) dados.push(item);
+    else dados[editando] = item;
+
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    editando = -1;
+    mostrar();
+    alert("Pergunta salva!");
+}
+
+/* ========= IMPORTAR SQL ========= */
+document.getElementById("importarSQL").addEventListener("click", () => {
+    document.getElementById("arquivoImportar").click();
+});
+
+document.getElementById("arquivoImportar").addEventListener("change", function() {
+    const file = this.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        const texto = e.target.result;
+        const linhas = texto.split("\n");
+        let dados = [];
+
+        linhas.forEach(linha => {
+            linha = linha.trim();
+            if (linha.startsWith("INSERT INTO")) {
+                const valores = linha.match(/\((.*)\)/)[1]
+                    .split(",")
+                    .map(x => x.trim().replace(/^'|'$/g, ""));
+
+                dados.push({
+                    nquestao: valores[1],
+                    questao: valores[2],
+                    materia: valores[3],
+                    escolaridade: valores[4],
+                    puzzle: valores[5],
+                    arquivo: valores[6] || null
+                });
+            }
+        });
+
+        localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+        index = 0;
+        mostrar();
+        alert("Arquivo SQL importado com sucesso!");
+    };
+
+    reader.readAsText(file);
+});
+
+/* ========= EXPORTAR SQL ========= */
+document.getElementById("exportarSQL").addEventListener("click", function () {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+
+    let sql = `CREATE TABLE perguntas (
+id INT PRIMARY KEY AUTO_INCREMENT,
+nquestao INT,
+questao TEXT,
+materia VARCHAR(255),
+escolaridade VARCHAR(20),
+puzzle VARCHAR(50),
+arquivo_base64 LONGTEXT
+);\n\n`;
+
+    dados.forEach((q, i) => {
+        sql += `INSERT INTO perguntas VALUES (${i+1}, '${q.nquestao}', '${q.questao.replace(/'/g,"''")}', '${q.materia}', '${q.escolaridade}', '${q.puzzle}', '${q.arquivo || ""}');\n`;
+    });
+
+    const blob = new Blob([sql], { type: "text/sql" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "banco_questoes.sql";
+    a.click();
+
+    alert("Arquivo SQL exportado com sucesso!");
+});
+
+/* ========= VISUALIZAR ========= */
+function mostrar() {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const visor = document.getElementById("conteudoVisor");
+
+    if (dados.length === 0) {
+        visor.innerHTML = "Nenhuma pergunta cadastrada.";
+        return;
+    }
+
+    if (index < 0) index = 0;
+    if (index >= dados.length) index = dados.length - 1;
+
+    const q = dados[index];
+
+    visor.innerHTML = `
+        <div class='campo'><b>Número:</b> ${q.nquestao}</div>
+        <div class='campo'><b>Matéria:</b> ${q.materia}</div>
+        <div class='campo'><b>Escolaridade:</b> ${q.escolaridade}</div>
+        <div class='campo'><b>Puzzle:</b> ${q.puzzle}</div>
+        <div class='campo'><b>Enunciado:</b><br>${q.questao.replace(/\n/g, '<br>')}</div>
+        <div class='campo'><b>Arquivo:</b><br>${q.arquivo ? "(arquivo salvo)" : "Nenhum arquivo"}</div>
+
+        <button class='btn btn-edit' onclick='editar()'>Editar</button>
+        <button class='btn btn-del' onclick='excluir()'>Excluir</button>
+    `;
+}
+
+function editar() {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes"));
+    const q = dados[index];
+
+    document.getElementById("nquestao").value = q.nquestao;
+    document.getElementById("questao").value = q.questao;
+    document.getElementById("materia").value = q.materia;
+    document.getElementById("escolaridade").value = q.escolaridade;
+    document.getElementById("puzzle").value = q.puzzle;
+
+    editando = index;
+}
+
+function excluir() {
+    let dados = JSON.parse(localStorage.getItem("bancoQuestoes"));
+    dados.splice(index, 1);
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    index = 0;
+    mostrar();
+    alert("Pergunta removida!");
+}
+
+function anterior() { index--; mostrar(); }
+function proxima()  { index++; mostrar(); }
+
+mostrar();
+
+</script>
+
+</body>
+</html>
