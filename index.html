@@ -92,6 +92,9 @@ margin-top:15px;
 <label>Número da questão</label>
 <input type="number" id="nquestao">
 
+<label>nQuestão em jogo</label>
+<input type="text" id="nquestaojogo">
+
 <label>Questão</label>
 <textarea id="questao"></textarea>
 
@@ -187,6 +190,7 @@ let dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 const item={
 
 nquestao:document.getElementById("nquestao").value,
+nquestaojogo:document.getElementById("nquestaojogo").value,
 questao:document.getElementById("questao").value,
 materia:document.getElementById("materia").value,
 dificuldade:document.getElementById("dificuldade").value,
@@ -218,6 +222,7 @@ const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 let sql=`CREATE TABLE perguntas(
 id INT PRIMARY KEY AUTO_INCREMENT,
 nquestao INT,
+nquestaojogo TEXT,
 questao TEXT,
 materia VARCHAR(255),
 dificuldade VARCHAR(20),
@@ -228,7 +233,7 @@ arquivo_base64 LONGTEXT
 
 dados.forEach((q,i)=>{
 
-sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.questao.replace(/'/g,"''")}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','${q.arquivo||""}');\n`
+sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.nquestaojogo}','${q.questao.replace(/'/g,"''")}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','${q.arquivo||""}');\n`
 
 })
 
@@ -269,6 +274,7 @@ const q=dados[index]
 visor.innerHTML=`
 
 <div class='campo'><b>Número:</b> ${q.nquestao}</div>
+<div class='campo'><b>nQuestão em jogo:</b> ${q.nquestaojogo}</div>
 <div class='campo'><b>Matéria:</b> ${q.materia}</div>
 <div class='campo'><b>Dificuldade:</b> ${q.dificuldade}</div>
 <div class='campo'><b>Resposta:</b> ${q.resposta}</div>
@@ -290,6 +296,7 @@ const dados=JSON.parse(localStorage.getItem("bancoQuestoes"))
 const q=dados[index]
 
 document.getElementById("nquestao").value=q.nquestao
+document.getElementById("nquestaojogo").value=q.nquestaojogo
 document.getElementById("questao").value=q.questao
 document.getElementById("materia").value=q.materia
 document.getElementById("dificuldade").value=q.dificuldade
