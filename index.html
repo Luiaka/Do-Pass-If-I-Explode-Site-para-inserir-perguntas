@@ -215,6 +215,64 @@ alert("Pergunta salva!")
 
 }
 
+/* =========================
+   IMPORTAR SQL (CORRIGIDO)
+========================= */
+
+document.getElementById("importarSQL").addEventListener("click",()=>{
+document.getElementById("arquivoImportar").click()
+})
+
+document.getElementById("arquivoImportar").addEventListener("change",function(){
+
+const file=this.files[0]
+if(!file)return
+
+const reader=new FileReader()
+
+reader.onload=function(e){
+
+const texto=e.target.result
+
+const linhas=texto.split("\n").filter(l=>l.startsWith("INSERT"))
+
+let dados=[]
+
+linhas.forEach(linha=>{
+
+let valores=linha.match(/\((.*)\)/)[1]
+
+// separa respeitando vírgulas dentro de texto
+let partes=valores.match(/'(.*?)'|[^,]+/g).map(v=>v.replace(/^'|'$/g,''))
+
+dados.push({
+nquestao:partes[1],
+nquestaojogo:partes[2],
+questao:partes[3],
+materia:partes[4],
+dificuldade:partes[5],
+resposta:partes[6],
+puzzle:partes[7],
+arquivo:partes[8] || null
+})
+
+})
+
+localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
+
+index=0
+mostrar()
+
+alert("Importado com sucesso!")
+
+}
+
+reader.readAsText(file)
+
+})
+
+/* ========================= */
+
 document.getElementById("exportarSQL").addEventListener("click",function(){
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
@@ -238,14 +296,11 @@ sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.nquestaojogo}','
 })
 
 const blob=new Blob([sql],{type:"text/sql"})
-
 const url=URL.createObjectURL(blob)
 
 const a=document.createElement("a")
-
 a.href=url
 a.download="banco_questoes.sql"
-
 a.click()
 
 alert("SQL exportado!")
@@ -259,11 +314,8 @@ const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 const visor=document.getElementById("conteudoVisor")
 
 if(dados.length===0){
-
 visor.innerHTML="Nenhuma pergunta cadastrada."
-
 return
-
 }
 
 if(index<0)index=0
@@ -272,7 +324,6 @@ if(index>=dados.length)index=dados.length-1
 const q=dados[index]
 
 visor.innerHTML=`
-
 <div class='campo'><b>Número:</b> ${q.nquestao}</div>
 <div class='campo'><b>nQuestão em jogo:</b> ${q.nquestaojogo}</div>
 <div class='campo'><b>Matéria:</b> ${q.materia}</div>
@@ -284,7 +335,6 @@ visor.innerHTML=`
 
 <button class='btn btn-edit' onclick='editar()'>Editar</button>
 <button class='btn btn-del' onclick='excluir()'>Excluir</button>
-
 `
 
 }
@@ -292,7 +342,6 @@ visor.innerHTML=`
 function editar(){
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes"))
-
 const q=dados[index]
 
 document.getElementById("nquestao").value=q.nquestao
