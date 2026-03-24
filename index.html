@@ -166,20 +166,15 @@ let editando=-1
 
 function salvar(){
 
-let dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-
 const arquivoInput=document.getElementById("arquivo").files[0]
 
 if(arquivoInput){
-
 const reader=new FileReader()
-
 reader.onload=e=>salvarFinal(e.target.result)
-
 reader.readAsDataURL(arquivoInput)
-
+}else{
+salvarFinal(null)
 }
-else salvarFinal(null)
 
 }
 
@@ -188,7 +183,6 @@ function salvarFinal(arquivoBase64){
 let dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 
 const item={
-
 nquestao:document.getElementById("nquestao").value,
 nquestaojogo:document.getElementById("nquestaojogo").value,
 questao:document.getElementById("questao").value,
@@ -197,18 +191,14 @@ dificuldade:document.getElementById("dificuldade").value,
 resposta:document.getElementById("resposta").value,
 puzzle:document.getElementById("puzzle").value,
 arquivo:arquivoBase64
-
 }
 
-if(editando===-1)
-dados.push(item)
-else
-dados[editando]=item
+if(editando===-1) dados.push(item)
+else dados[editando]=item
 
 localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
 
 editando=-1
-
 mostrar()
 
 alert("Pergunta salva!")
@@ -216,14 +206,14 @@ alert("Pergunta salva!")
 }
 
 /* =========================
-   IMPORTAR SQL (CORRIGIDO)
+   IMPORTADOR BRABO
 ========================= */
 
-document.getElementById("importarSQL").addEventListener("click",()=>{
+document.getElementById("importarSQL").onclick=()=>{
 document.getElementById("arquivoImportar").click()
-})
+}
 
-document.getElementById("arquivoImportar").addEventListener("change",function(){
+document.getElementById("arquivoImportar").onchange=function(){
 
 const file=this.files[0]
 if(!file)return
@@ -234,16 +224,42 @@ reader.onload=function(e){
 
 const texto=e.target.result
 
-const linhas=texto.split("\n").filter(l=>l.startsWith("INSERT"))
+const inserts = texto.match(/INSERT INTO perguntas VALUES\s*\(([\s\S]*?)\);/g)
+
+if(!inserts){
+alert("Arquivo inválido ou sem INSERT!")
+return
+}
 
 let dados=[]
 
-linhas.forEach(linha=>{
+inserts.forEach(linha=>{
 
-let valores=linha.match(/\((.*)\)/)[1]
+let conteudo = linha.match(/\(([\s\S]*?)\)/)[1]
 
-// separa respeitando vírgulas dentro de texto
-let partes=valores.match(/'(.*?)'|[^,]+/g).map(v=>v.replace(/^'|'$/g,''))
+let partes=[]
+let atual=""
+let dentro=false
+
+for(let i=0;i<conteudo.length;i++){
+let c=conteudo[i]
+
+if(c==="'" && conteudo[i-1]!=="\\"){
+dentro=!dentro
+}
+
+if(c==="," && !dentro){
+partes.push(atual)
+atual=""
+}else{
+atual+=c
+}
+}
+
+partes.push(atual)
+
+// limpa aspas
+partes = partes.map(p=>p.trim().replace(/^'|'$/g,''))
 
 dados.push({
 nquestao:partes[1],
@@ -269,11 +285,11 @@ alert("Importado com sucesso!")
 
 reader.readAsText(file)
 
-})
+}
 
 /* ========================= */
 
-document.getElementById("exportarSQL").addEventListener("click",function(){
+document.getElementById("exportarSQL").onclick=function(){
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 
@@ -303,14 +319,13 @@ a.href=url
 a.download="banco_questoes.sql"
 a.click()
 
-alert("SQL exportado!")
+}
 
-})
+/* ========================= */
 
 function mostrar(){
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-
 const visor=document.getElementById("conteudoVisor")
 
 if(dados.length===0){
@@ -367,8 +382,6 @@ localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
 index=0
 
 mostrar()
-
-alert("Pergunta removida")
 
 }
 
