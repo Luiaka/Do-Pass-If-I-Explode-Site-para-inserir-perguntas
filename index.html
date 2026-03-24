@@ -3,320 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Do I pass if I explode? - Sistema de Questões</title>
+<title>Sistema de Questões</title>
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#f5f5f5;
-}
-
-#topo{
-background:#000;
-color:white;
-padding:40px 15px;
-text-align:center;
-}
-
-#container{
-display:flex;
-flex-wrap:wrap;
-gap:30px;
-padding:20px;
-}
-
+body{margin:0;font-family:Arial;background:#f5f5f5;}
+#topo{background:#000;color:white;padding:30px;text-align:center;}
+#container{display:flex;flex-wrap:wrap;gap:20px;padding:20px;}
 #formulario,#visor{
 flex:1 1 350px;
-padding:20px;
 background:white;
-border-radius:12px;
-box-shadow:0 2px 10px rgba(0,0,0,0.1);
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
-
-#formulario input,#formulario select,#formulario textarea{
-width:100%;
-margin-top:5px;
-margin-bottom:18px;
-font-size:16px;
-padding:10px;
-border-radius:8px;
-border:1px solid #ccc;
+input,select,textarea{
+width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;
 }
-
-#formulario button{
-padding:12px 20px;
-font-size:16px;
-border-radius:8px;
-cursor:pointer;
-border:none;
-margin-top:10px;
-}
-
-#importarSQL{background:#888;color:white;width:100%;}
-#exportarSQL{background:#2bff7a;color:black;width:100%;margin-top:10px;}
-
-.campo{
-background:#f3f7ff;
-padding:12px;
-border-radius:8px;
-margin-bottom:15px;
-}
-
-.btn{padding:10px 15px;border-radius:6px;border:none;cursor:pointer;}
-.btn-edit{background:#4a7dff;color:white;}
-.btn-del{background:#ff5c5c;color:white;}
-.btn-nav{background:#ddd;}
-
-#navegacao{
-display:flex;
-gap:10px;
-margin-top:15px;
-}
+button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;}
+#importarSQL{background:#888;color:#fff;width:100%;}
+#exportarSQL{background:#2bff7a;width:100%;}
+.campo{background:#eef;padding:10px;border-radius:6px;margin-bottom:10px;}
 </style>
 </head>
 
 <body>
 
 <div id="topo">
-<h2>Do I pass if I explode?</h2>
-<p>Sistema de Inserção e Navegação de Perguntas</p>
+<h2>Sistema de Questões</h2>
 </div>
 
 <div id="container">
 
-<form id="formulario" onsubmit="event.preventDefault(); salvar();">
+<div id="formulario">
 
-<h2>Inserir / Editar Pergunta</h2>
+<input id="nquestao" placeholder="Número">
+<input id="nquestaojogo" placeholder="nQuestão jogo">
+<textarea id="questao" placeholder="Questão"></textarea>
 
-<label>Número da questão</label>
-<input type="number" id="nquestao">
-
-<label>nQuestão em jogo</label>
-<input type="text" id="nquestaojogo">
-
-<label>Questão</label>
-<textarea id="questao"></textarea>
-
-<label>Matéria</label>
 <select id="materia">
-<option></option>
-<option>Matemática</option>
-<option>História</option>
-<option>Geografia</option>
-<option>Filosofia</option>
-<option>Sociologia</option>
+<option></option><option>Matemática</option><option>História</option>
 </select>
 
-<label>Dificuldade</label>
 <select id="dificuldade">
-<option></option>
-<option value="Facil">Fácil</option>
-<option value="Medio">Médio</option>
-<option value="Dificil">Difícil</option>
+<option></option><option>Facil</option><option>Medio</option><option>Dificil</option>
 </select>
 
-<label>Resposta correta</label>
 <select id="resposta">
-<option></option>
-<option>A</option>
-<option>B</option>
-<option>C</option>
-<option>D</option>
-<option>E</option>
+<option></option><option>A</option><option>B</option>
 </select>
 
-<label>Puzzle</label>
 <select id="puzzle">
-<option value="Captcha">Captcha</option>
-<option value="Cores">Das Cores</option>
-<option value="CMD">CMD</option>
-<option value="Botao">Botão</option>
+<option>Captcha</option><option>CMD</option>
 </select>
 
-<label>Arquivo anexo</label>
-<input type="file" id="arquivo">
+<button onclick="salvar()">Salvar</button>
 
-<button type="submit" style="background:#4a7dff;color:white;width:100%">Salvar</button>
+<input type="file" id="arquivoImportar" hidden>
+<button id="importarSQL">Importar SQL</button>
+<button id="exportarSQL">Exportar SQL</button>
 
-<input type="file" id="arquivoImportar" accept=".sql" style="display:none">
-
-<button type="button" id="importarSQL">Importar .SQL</button>
-<button type="button" id="exportarSQL">Exportar .SQL</button>
-
-</form>
+</div>
 
 <div id="visor">
-
-<h3>Visualizador de Perguntas</h3>
 <div id="conteudoVisor"></div>
-
-<div id="navegacao">
-<button class="btn btn-nav" onclick="anterior()">◀ Anterior</button>
-<button class="btn btn-nav" onclick="proxima()">Próxima ▶</button>
 </div>
 
-</div>
 </div>
 
 <script>
 
 let index=0
-let editando=-1
 
 function salvar(){
-
-const arquivoInput=document.getElementById("arquivo").files[0]
-
-if(arquivoInput){
-const reader=new FileReader()
-reader.onload=e=>salvarFinal(e.target.result)
-reader.readAsDataURL(arquivoInput)
-}else{
-salvarFinal(null)
-}
-
-}
-
-function salvarFinal(arquivoBase64){
-
 let dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 
-const item={
-nquestao:document.getElementById("nquestao").value,
-nquestaojogo:document.getElementById("nquestaojogo").value,
-questao:document.getElementById("questao").value,
-materia:document.getElementById("materia").value,
-dificuldade:document.getElementById("dificuldade").value,
-resposta:document.getElementById("resposta").value,
-puzzle:document.getElementById("puzzle").value,
-arquivo:arquivoBase64
-}
-
-if(editando===-1) dados.push(item)
-else dados[editando]=item
+dados.push({
+nquestao:nquestao.value,
+nquestaojogo:nquestaojogo.value,
+questao:questao.value,
+materia:materia.value,
+dificuldade:dificuldade.value,
+resposta:resposta.value,
+puzzle:puzzle.value
+})
 
 localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
-
-editando=-1
 mostrar()
-
-alert("Pergunta salva!")
-
 }
 
 /* =========================
-   IMPORTADOR BRABO
+   IMPORTADOR ULTRA ROBUSTO
 ========================= */
 
-document.getElementById("importarSQL").onclick=()=>{
-document.getElementById("arquivoImportar").click()
-}
+importarSQL.onclick=()=>arquivoImportar.click()
 
-document.getElementById("arquivoImportar").onchange=function(){
-
-const file=this.files[0]
+arquivoImportar.onchange=e=>{
+const file=e.target.files[0]
 if(!file)return
 
 const reader=new FileReader()
 
-reader.onload=function(e){
+reader.onload=e=>{
 
-const texto=e.target.result
+const sql=e.target.result
 
-const inserts = texto.match(/INSERT INTO perguntas VALUES\s*\(([\s\S]*?)\);/g)
+// pega tudo entre VALUES (...) ignorando formatação
+const regex=/INSERT INTO\s+perguntas[\s\S]*?VALUES\s*\(([\s\S]*?)\);/gi
 
-if(!inserts){
-alert("Arquivo inválido ou sem INSERT!")
-return
-}
-
+let match
 let dados=[]
 
-inserts.forEach(linha=>{
+while((match=regex.exec(sql))!==null){
 
-let conteudo = linha.match(/\(([\s\S]*?)\)/)[1]
+let linha=match[1]
 
-let partes=[]
+// parser manual
+let campos=[]
 let atual=""
-let dentro=false
+let aspas=false
 
-for(let i=0;i<conteudo.length;i++){
-let c=conteudo[i]
+for(let i=0;i<linha.length;i++){
+let c=linha[i]
 
-if(c==="'" && conteudo[i-1]!=="\\"){
-dentro=!dentro
-}
+if(c==="'" && linha[i-1]!=="\\") aspas=!aspas
 
-if(c==="," && !dentro){
-partes.push(atual)
+if(c==="," && !aspas){
+campos.push(atual)
 atual=""
 }else{
 atual+=c
 }
 }
 
-partes.push(atual)
+campos.push(atual)
 
-// limpa aspas
-partes = partes.map(p=>p.trim().replace(/^'|'$/g,''))
+// limpa
+campos=campos.map(c=>c.trim().replace(/^'|'$/g,""))
 
 dados.push({
-nquestao:partes[1],
-nquestaojogo:partes[2],
-questao:partes[3],
-materia:partes[4],
-dificuldade:partes[5],
-resposta:partes[6],
-puzzle:partes[7],
-arquivo:partes[8] || null
+nquestao:campos[1]||"",
+nquestaojogo:campos[2]||"",
+questao:campos[3]||"",
+materia:campos[4]||"",
+dificuldade:campos[5]||"",
+resposta:campos[6]||"",
+puzzle:campos[7]||"",
+arquivo:campos[8]||null
 })
 
-})
+}
+
+if(dados.length===0){
+alert("❌ Não encontrou dados no SQL")
+return
+}
 
 localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
-
 index=0
 mostrar()
 
-alert("Importado com sucesso!")
+alert("✅ Importado "+dados.length+" questões!")
 
 }
 
 reader.readAsText(file)
-
 }
 
 /* ========================= */
 
-document.getElementById("exportarSQL").onclick=function(){
+exportarSQL.onclick=()=>{
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
 
-let sql=`CREATE TABLE perguntas(
-id INT PRIMARY KEY AUTO_INCREMENT,
-nquestao INT,
-nquestaojogo TEXT,
-questao TEXT,
-materia VARCHAR(255),
-dificuldade VARCHAR(20),
-resposta CHAR(1),
-puzzle VARCHAR(50),
-arquivo_base64 LONGTEXT
-);\n\n`
+let sql=""
 
 dados.forEach((q,i)=>{
-
-sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.nquestaojogo}','${q.questao.replace(/'/g,"''")}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','${q.arquivo||""}');\n`
-
+sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.nquestaojogo}','${q.questao}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','');\n`
 })
 
-const blob=new Blob([sql],{type:"text/sql"})
-const url=URL.createObjectURL(blob)
-
+const blob=new Blob([sql])
 const a=document.createElement("a")
-a.href=url
-a.download="banco_questoes.sql"
+a.href=URL.createObjectURL(blob)
+a.download="banco.sql"
 a.click()
 
 }
@@ -326,67 +194,20 @@ a.click()
 function mostrar(){
 
 const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-const visor=document.getElementById("conteudoVisor")
 
 if(dados.length===0){
-visor.innerHTML="Nenhuma pergunta cadastrada."
+conteudoVisor.innerHTML="Sem dados"
 return
 }
 
-if(index<0)index=0
-if(index>=dados.length)index=dados.length-1
+let q=dados[index]
 
-const q=dados[index]
-
-visor.innerHTML=`
-<div class='campo'><b>Número:</b> ${q.nquestao}</div>
-<div class='campo'><b>nQuestão em jogo:</b> ${q.nquestaojogo}</div>
-<div class='campo'><b>Matéria:</b> ${q.materia}</div>
-<div class='campo'><b>Dificuldade:</b> ${q.dificuldade}</div>
-<div class='campo'><b>Resposta:</b> ${q.resposta}</div>
-<div class='campo'><b>Puzzle:</b> ${q.puzzle}</div>
-<div class='campo'><b>Enunciado:</b><br>${q.questao.replace(/\n/g,'<br>')}</div>
-<div class='campo'><b>Arquivo:</b> ${q.arquivo?"(arquivo salvo)":"Nenhum arquivo"}</div>
-
-<button class='btn btn-edit' onclick='editar()'>Editar</button>
-<button class='btn btn-del' onclick='excluir()'>Excluir</button>
+conteudoVisor.innerHTML=`
+<div class='campo'>${q.questao}</div>
+<div class='campo'>Resposta: ${q.resposta}</div>
 `
 
 }
-
-function editar(){
-
-const dados=JSON.parse(localStorage.getItem("bancoQuestoes"))
-const q=dados[index]
-
-document.getElementById("nquestao").value=q.nquestao
-document.getElementById("nquestaojogo").value=q.nquestaojogo
-document.getElementById("questao").value=q.questao
-document.getElementById("materia").value=q.materia
-document.getElementById("dificuldade").value=q.dificuldade
-document.getElementById("resposta").value=q.resposta
-document.getElementById("puzzle").value=q.puzzle
-
-editando=index
-
-}
-
-function excluir(){
-
-let dados=JSON.parse(localStorage.getItem("bancoQuestoes"))
-
-dados.splice(index,1)
-
-localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
-
-index=0
-
-mostrar()
-
-}
-
-function anterior(){index--;mostrar()}
-function proxima(){index++;mostrar()}
 
 mostrar()
 
