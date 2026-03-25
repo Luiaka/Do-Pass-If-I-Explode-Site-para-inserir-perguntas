@@ -17,12 +17,18 @@ border-radius:10px;
 box-shadow:0 2px 8px rgba(0,0,0,.1);
 }
 input,select,textarea{
-width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;
+width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;box-sizing: border-box;
 }
 button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;}
 #importarSQL{background:#888;color:#fff;width:100%;}
 #exportarSQL{background:#2bff7a;width:100%;}
 .campo{background:#eef;padding:10px;border-radius:6px;margin-bottom:10px;}
+
+/* Estilo da Navegação */
+#nav{display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
+.btn-nav{background: #444; color: white; width: 40px; height: 40px; font-weight: bold;}
+.btn-nav:hover{background: #222;}
+#indicador{font-weight: bold; color: #555;}
 </style>
 </head>
 
@@ -35,183 +41,176 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
 <div id="container">
 
 <div id="formulario">
-
 <input id="nquestao" placeholder="Número">
 <input id="nquestaojogo" placeholder="nQuestão jogo">
 <textarea id="questao" placeholder="Questão"></textarea>
 
 <select id="materia">
-<option></option><option>Matemática</option><option>História</option><option>Geografia</option>
-   <option>Sociologia</option><option>Filosofia</option>
+<option value=""></option><option>Matemática</option><option>História</option><option>Geografia</option>
+<option>Sociologia</option><option>Filosofia</option>
 </select>
 
 <select id="dificuldade">
-<option></option><option>Facil</option><option>Medio</option><option>Dificil</option>
+<option value=""></option><option>Facil</option><option>Medio</option><option>Dificil</option>
 </select>
 
 <select id="resposta">
-<option></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+<option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
 </select>
 
 <select id="puzzle">
 <option>Captcha</option><option>CMD</option><option>Botao</option><option>Genius</option>
 </select>
 
-<button onclick="salvar()">Salvar</button>
+<button onclick="salvar()" style="background:#007bff; color:white; width:100%;">Salvar / Atualizar</button>
 
 <input type="file" id="arquivoImportar" hidden>
 <button id="importarSQL">Importar SQL</button>
 <button id="exportarSQL">Exportar SQL</button>
-
 </div>
 
 <div id="visor">
-<div id="conteudoVisor"></div>
+    <div id="nav">
+        <button class="btn-nav" onclick="mudarIndex(-1)"><</button>
+        <span id="indicador">0 / 0</span>
+        <button class="btn-nav" onclick="mudarIndex(1)">></button>
+    </div>
+    <hr>
+    <div id="conteudoVisor"></div>
 </div>
 
 </div>
 
 <script>
+let index = 0;
 
-let index=0
-
-function salvar(){
-let dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-
-dados.push({
-nquestao:nquestao.value,
-nquestaojogo:nquestaojogo.value,
-questao:questao.value,
-materia:materia.value,
-dificuldade:dificuldade.value,
-resposta:resposta.value,
-puzzle:puzzle.value
-})
-
-localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
-mostrar()
+function mudarIndex(delta) {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    if (dados.length === 0) return;
+    
+    index += delta;
+    if (index < 0) index = 0;
+    if (index >= dados.length) index = dados.length - 1;
+    
+    mostrar();
 }
 
-/* =========================
-   IMPORTADOR ULTRA ROBUSTO
-========================= */
+function salvar() {
+    let dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const novaQuestao = {
+        nquestao: nquestao.value,
+        nquestaojogo: nquestaojogo.value,
+        questao: questao.value,
+        materia: materia.value,
+        dificuldade: dificuldade.value,
+        resposta: resposta.value,
+        puzzle: puzzle.value
+    };
 
-importarSQL.onclick=()=>arquivoImportar.click()
+    // Se houver dados, ele substitui a atual, senão adiciona nova
+    if(dados.length > 0 && index < dados.length){
+        dados[index] = novaQuestao;
+        alert("Questão atualizada!");
+    } else {
+        dados.push(novaQuestao);
+        index = dados.length - 1;
+        alert("Nova questão salva!");
+    }
 
-arquivoImportar.onchange=e=>{
-const file=e.target.files[0]
-if(!file)return
-
-const reader=new FileReader()
-
-reader.onload=e=>{
-
-const sql=e.target.result
-
-// pega tudo entre VALUES (...) ignorando formatação
-const regex=/INSERT INTO\s+perguntas[\s\S]*?VALUES\s*\(([\s\S]*?)\);/gi
-
-let match
-let dados=[]
-
-while((match=regex.exec(sql))!==null){
-
-let linha=match[1]
-
-// parser manual
-let campos=[]
-let atual=""
-let aspas=false
-
-for(let i=0;i<linha.length;i++){
-let c=linha[i]
-
-if(c==="'" && linha[i-1]!=="\\") aspas=!aspas
-
-if(c==="," && !aspas){
-campos.push(atual)
-atual=""
-}else{
-atual+=c
-}
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    mostrar();
 }
 
-campos.push(atual)
+function mostrar() {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const indicador = document.getElementById("indicador");
+    const visor = document.getElementById("conteudoVisor");
 
-// limpa
-campos=campos.map(c=>c.trim().replace(/^'|'$/g,""))
+    if (dados.length === 0) {
+        visor.innerHTML = "Sem dados no banco.";
+        indicador.innerText = "0 / 0";
+        return;
+    }
 
-dados.push({
-nquestao:campos[1]||"",
-nquestaojogo:campos[2]||"",
-questao:campos[3]||"",
-materia:campos[4]||"",
-dificuldade:campos[5]||"",
-resposta:campos[6]||"",
-puzzle:campos[7]||"",
-arquivo:campos[8]||null
-})
+    let q = dados[index];
+    indicador.innerText = `${index + 1} / ${dados.length}`;
 
+    visor.innerHTML = `
+        <div class='campo'><strong>ID Jogo:</strong> ${q.nquestaojogo}</div>
+        <div class='campo'><strong>Matéria:</strong> ${q.materia} (${q.dificuldade})</div>
+        <div class='campo'>${q.questao}</div>
+        <div class='campo'><strong>Resposta Correta:</strong> ${q.resposta}</div>
+        <div class='campo'><strong>Puzzle:</strong> ${q.puzzle}</div>
+    `;
+
+    // Preenche o formulário automaticamente para facilitar edição
+    nquestao.value = q.nquestao;
+    nquestaojogo.value = q.nquestaojogo;
+    questao.value = q.questao;
+    materia.value = q.materia;
+    dificuldade.value = q.dificuldade;
+    resposta.value = q.resposta;
+    puzzle.value = q.puzzle;
 }
 
-if(dados.length===0){
-alert("❌ Não encontrou dados no SQL")
-return
-}
+// Lógica de Importação/Exportação mantida do seu código original
+importarSQL.onclick = () => arquivoImportar.click();
+arquivoImportar.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const sql = e.target.result;
+        const regex = /INSERT INTO\s+perguntas[\s\S]*?VALUES\s*\(([\s\S]*?)\);/gi;
+        let match;
+        let dados = [];
+        while ((match = regex.exec(sql)) !== null) {
+            let linha = match[1];
+            let campos = [];
+            let atual = "";
+            let aspas = false;
+            for (let i = 0; i < linha.length; i++) {
+                let c = linha[i];
+                if (c === "'" && linha[i - 1] !== "\\") aspas = !aspas;
+                if (c === "," && !aspas) { campos.push(atual); atual = ""; } 
+                else { atual += c; }
+            }
+            campos.push(atual);
+            campos = campos.map(c => c.trim().replace(/^'|'$/g, ""));
+            dados.push({
+                nquestao: campos[1] || "",
+                nquestaojogo: campos[2] || "",
+                questao: campos[3] || "",
+                materia: campos[4] || "",
+                dificuldade: campos[5] || "",
+                resposta: campos[6] || "",
+                puzzle: campos[7] || "",
+                arquivo: campos[8] || null
+            });
+        }
+        if (dados.length === 0) { alert("❌ Não encontrou dados no SQL"); return; }
+        localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+        index = 0;
+        mostrar();
+        alert("✅ Importado " + dados.length + " questões!");
+    };
+    reader.readAsText(file);
+};
 
-localStorage.setItem("bancoQuestoes",JSON.stringify(dados))
-index=0
-mostrar()
+exportarSQL.onclick = () => {
+    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    let sql = "";
+    dados.forEach((q, i) => {
+        sql += `INSERT INTO perguntas VALUES (${i + 1},'${q.nquestao}','${q.nquestaojogo}','${q.questao}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','');\n`;
+    });
+    const blob = new Blob([sql]);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "banco.sql";
+    a.click();
+};
 
-alert("✅ Importado "+dados.length+" questões!")
-
-}
-
-reader.readAsText(file)
-}
-
-/* ========================= */
-
-exportarSQL.onclick=()=>{
-
-const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-
-let sql=""
-
-dados.forEach((q,i)=>{
-sql+=`INSERT INTO perguntas VALUES (${i+1},'${q.nquestao}','${q.nquestaojogo}','${q.questao}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','');\n`
-})
-
-const blob=new Blob([sql])
-const a=document.createElement("a")
-a.href=URL.createObjectURL(blob)
-a.download="banco.sql"
-a.click()
-
-}
-
-/* ========================= */
-
-function mostrar(){
-
-const dados=JSON.parse(localStorage.getItem("bancoQuestoes")||"[]")
-
-if(dados.length===0){
-conteudoVisor.innerHTML="Sem dados"
-return
-}
-
-let q=dados[index]
-
-conteudoVisor.innerHTML=`
-<div class='campo'>${q.questao}</div>
-<div class='campo'>Resposta: ${q.resposta}</div>
-`
-
-}
-
-mostrar()
-
+mostrar();
 </script>
 
 </body>
