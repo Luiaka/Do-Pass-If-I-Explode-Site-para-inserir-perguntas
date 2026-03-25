@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema de Questões</title>
+<title>Sistema de Questões - Premium</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#f5f5f5;}
@@ -19,16 +19,23 @@ box-shadow:0 2px 8px rgba(0,0,0,.1);
 input,select,textarea{
 width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ccc;box-sizing: border-box;
 }
-button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;}
+button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;font-weight:bold;}
+
+/* Botões Coloridos */
+.btn-salvar{background:#007bff; color:white; width:100%;}
+.btn-editar{background:#ffc107; color:black; width:48%;}
+.btn-excluir{background:#dc3545; color:white; width:48%;}
 #importarSQL{background:#888;color:#fff;width:100%;}
 #exportarSQL{background:#2bff7a;width:100%;}
+
 .campo{background:#eef;padding:10px;border-radius:6px;margin-bottom:10px;}
 
 /* Estilo da Navegação */
 #nav{display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;}
-.btn-nav{background: #444; color: white; width: 40px; height: 40px; font-weight: bold;}
+.btn-nav{background: #444; color: white; width: 40px; height: 40px;}
 .btn-nav:hover{background: #222;}
 #indicador{font-weight: bold; color: #555;}
+.controles-visor{display:flex; justify-content: space-between; margin-top: 15px;}
 </style>
 </head>
 
@@ -62,7 +69,7 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
 <option>Captcha</option><option>CMD</option><option>Botao</option><option>Genius</option>
 </select>
 
-<button onclick="salvar()" style="background:#007bff; color:white; width:100%;">Salvar / Atualizar</button>
+<button class="btn-salvar" onclick="salvarNovo()">Salvar Nova Questão</button>
 
 <input type="file" id="arquivoImportar" hidden>
 <button id="importarSQL">Importar SQL</button>
@@ -77,6 +84,11 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
     </div>
     <hr>
     <div id="conteudoVisor"></div>
+    
+    <div class="controles-visor">
+        <button class="btn-editar" onclick="editarAtual()">Editar Esta</button>
+        <button class="btn-excluir" onclick="excluirAtual()">Excluir Esta</button>
+    </div>
 </div>
 
 </div>
@@ -84,20 +96,41 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
 <script>
 let index = 0;
 
+function obterDados() {
+    return JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+}
+
 function mudarIndex(delta) {
-    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const dados = obterDados();
     if (dados.length === 0) return;
-    
     index += delta;
     if (index < 0) index = 0;
     if (index >= dados.length) index = dados.length - 1;
-    
     mostrar();
 }
 
-function salvar() {
-    let dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
-    const novaQuestao = {
+function salvarNovo() {
+    let dados = obterDados();
+    dados.push({
+        nquestao: nquestao.value,
+        nquestaojogo: nquestaojogo.value,
+        questao: questao.value,
+        materia: materia.value,
+        dificuldade: dificuldade.value,
+        resposta: resposta.value,
+        puzzle: puzzle.value
+    });
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    index = dados.length - 1; // Vai para a última adicionada
+    alert("Nova questão salva!");
+    mostrar();
+}
+
+function editarAtual() {
+    let dados = obterDados();
+    if (dados.length === 0) return;
+    
+    dados[index] = {
         nquestao: nquestao.value,
         nquestaojogo: nquestaojogo.value,
         questao: questao.value,
@@ -106,28 +139,34 @@ function salvar() {
         resposta: resposta.value,
         puzzle: puzzle.value
     };
-
-    // Se houver dados, ele substitui a atual, senão adiciona nova
-    if(dados.length > 0 && index < dados.length){
-        dados[index] = novaQuestao;
-        alert("Questão atualizada!");
-    } else {
-        dados.push(novaQuestao);
-        index = dados.length - 1;
-        alert("Nova questão salva!");
-    }
-
+    
     localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    alert("Questão " + (index + 1) + " atualizada!");
     mostrar();
 }
 
+function excluirAtual() {
+    let dados = obterDados();
+    if (dados.length === 0) return;
+
+    if (confirm("Tem certeza que deseja excluir a questão " + (index + 1) + "?")) {
+        dados.splice(index, 1);
+        localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+        
+        if (index >= dados.length) index = Math.max(0, dados.length - 1);
+        
+        alert("Questão removida!");
+        mostrar();
+    }
+}
+
 function mostrar() {
-    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const dados = obterDados();
     const indicador = document.getElementById("indicador");
     const visor = document.getElementById("conteudoVisor");
 
     if (dados.length === 0) {
-        visor.innerHTML = "Sem dados no banco.";
+        visor.innerHTML = "Banco vazio.";
         indicador.innerText = "0 / 0";
         return;
     }
@@ -139,11 +178,10 @@ function mostrar() {
         <div class='campo'><strong>ID Jogo:</strong> ${q.nquestaojogo}</div>
         <div class='campo'><strong>Matéria:</strong> ${q.materia} (${q.dificuldade})</div>
         <div class='campo'>${q.questao}</div>
-        <div class='campo'><strong>Resposta Correta:</strong> ${q.resposta}</div>
-        <div class='campo'><strong>Puzzle:</strong> ${q.puzzle}</div>
+        <div class='campo'><strong>Resposta:</strong> ${q.resposta} | <strong>Puzzle:</strong> ${q.puzzle}</div>
     `;
 
-    // Preenche o formulário automaticamente para facilitar edição
+    // Preenche o formulário para edição rápida
     nquestao.value = q.nquestao;
     nquestaojogo.value = q.nquestaojogo;
     questao.value = q.questao;
@@ -153,7 +191,7 @@ function mostrar() {
     puzzle.value = q.puzzle;
 }
 
-// Lógica de Importação/Exportação mantida do seu código original
+// Mantendo suas funções de SQL
 importarSQL.onclick = () => arquivoImportar.click();
 arquivoImportar.onchange = e => {
     const file = e.target.files[0];
@@ -162,13 +200,9 @@ arquivoImportar.onchange = e => {
     reader.onload = e => {
         const sql = e.target.result;
         const regex = /INSERT INTO\s+perguntas[\s\S]*?VALUES\s*\(([\s\S]*?)\);/gi;
-        let match;
-        let dados = [];
+        let match, dados = [];
         while ((match = regex.exec(sql)) !== null) {
-            let linha = match[1];
-            let campos = [];
-            let atual = "";
-            let aspas = false;
+            let linha = match[1], campos = [], atual = "", aspas = false;
             for (let i = 0; i < linha.length; i++) {
                 let c = linha[i];
                 if (c === "'" && linha[i - 1] !== "\\") aspas = !aspas;
@@ -178,34 +212,27 @@ arquivoImportar.onchange = e => {
             campos.push(atual);
             campos = campos.map(c => c.trim().replace(/^'|'$/g, ""));
             dados.push({
-                nquestao: campos[1] || "",
-                nquestaojogo: campos[2] || "",
-                questao: campos[3] || "",
-                materia: campos[4] || "",
-                dificuldade: campos[5] || "",
-                resposta: campos[6] || "",
-                puzzle: campos[7] || "",
-                arquivo: campos[8] || null
+                nquestao: campos[1]||"", nquestaojogo: campos[2]||"", questao: campos[3]||"",
+                materia: campos[4]||"", dificuldade: campos[5]||"", resposta: campos[6]||"",
+                puzzle: campos[7]||""
             });
         }
-        if (dados.length === 0) { alert("❌ Não encontrou dados no SQL"); return; }
         localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
         index = 0;
         mostrar();
-        alert("✅ Importado " + dados.length + " questões!");
+        alert("✅ Importado!");
     };
     reader.readAsText(file);
 };
 
 exportarSQL.onclick = () => {
-    const dados = JSON.parse(localStorage.getItem("bancoQuestoes") || "[]");
+    const dados = obterDados();
     let sql = "";
     dados.forEach((q, i) => {
         sql += `INSERT INTO perguntas VALUES (${i + 1},'${q.nquestao}','${q.nquestaojogo}','${q.questao}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','');\n`;
     });
-    const blob = new Blob([sql]);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = URL.createObjectURL(new Blob([sql]));
     a.download = "banco.sql";
     a.click();
 };
