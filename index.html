@@ -50,7 +50,7 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
 <div id="formulario">
 <input id="nquestao" placeholder="Número">
 <input id="nquestaojogo" placeholder="nQuestão jogo">
-<textarea id="questao" placeholder="Questão"></textarea>
+<textarea id="questao" placeholder="Questão" rows="5"></textarea>
 
 <select id="materia">
 <option value=""></option><option>Matemática</option><option>História</option><option>Geografia</option>
@@ -121,7 +121,7 @@ function salvarNovo() {
         puzzle: puzzle.value
     });
     localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
-    index = dados.length - 1; // Vai para a última adicionada
+    index = dados.length - 1;
     alert("Nova questão salva!");
     mostrar();
 }
@@ -177,11 +177,10 @@ function mostrar() {
     visor.innerHTML = `
         <div class='campo'><strong>ID Jogo:</strong> ${q.nquestaojogo}</div>
         <div class='campo'><strong>Matéria:</strong> ${q.materia} (${q.dificuldade})</div>
-        <div class='campo'>${q.questao}</div>
+        <div class='campo'>${q.questao.replace(/\n/g, '<br>')}</div>
         <div class='campo'><strong>Resposta:</strong> ${q.resposta} | <strong>Puzzle:</strong> ${q.puzzle}</div>
     `;
 
-    // Preenche o formulário para edição rápida
     nquestao.value = q.nquestao;
     nquestaojogo.value = q.nquestaojogo;
     questao.value = q.questao;
@@ -191,7 +190,7 @@ function mostrar() {
     puzzle.value = q.puzzle;
 }
 
-// Mantendo suas funções de SQL
+// Funções de SQL
 importarSQL.onclick = () => arquivoImportar.click();
 arquivoImportar.onchange = e => {
     const file = e.target.files[0];
