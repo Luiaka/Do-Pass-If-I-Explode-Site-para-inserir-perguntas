@@ -53,8 +53,20 @@ button{padding:10px;border:none;border-radius:6px;cursor:pointer;margin-top:5px;
 <textarea id="questao" placeholder="Questão" rows="5"></textarea>
 
 <select id="materia">
-<option value=""></option><option>Matemática</option><option>História</option><option>Geografia</option>
-<option>Sociologia</option><option>Filosofia</option>
+    <option value=""></option>
+    <option>Biologia</option>
+    <option>Matemática</option>
+    <option>Física</option>
+    <option>Química</option>
+    <option>História</option>
+    <option>Geografia</option>
+    <option>Literatura</option>
+    <option>Língua Portuguesa</option>
+    <option>Arte</option>
+    <option>Educação Física</option>
+    <option>Sociologia</option>
+    <option>Filosofia</option>
+    <option>Conhecimentos Gerais</option>
 </select>
 
 <select id="dificuldade">
@@ -107,6 +119,140 @@ function mudarIndex(delta) {
     if (index < 0) index = 0;
     if (index >= dados.length) index = dados.length - 1;
     mostrar();
+}
+
+function salvarNovo() {
+    let dados = obterDados();
+    dados.push({
+        nquestao: nquestao.value,
+        nquestaojogo: nquestaojogo.value,
+        questao: questao.value,
+        materia: materia.value,
+        dificuldade: dificuldade.value,
+        resposta: resposta.value,
+        puzzle: puzzle.value
+    });
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    index = dados.length - 1;
+    alert("Nova questão salva!");
+    mostrar();
+}
+
+function editarAtual() {
+    let dados = obterDados();
+    if (dados.length === 0) return;
+    
+    dados[index] = {
+        nquestao: nquestao.value,
+        nquestaojogo: nquestaojogo.value,
+        questao: questao.value,
+        materia: materia.value,
+        dificuldade: dificuldade.value,
+        resposta: resposta.value,
+        puzzle: puzzle.value
+    };
+    
+    localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+    alert("Questão " + (index + 1) + " atualizada!");
+    mostrar();
+}
+
+function excluirAtual() {
+    let dados = obterDados();
+    if (dados.length === 0) return;
+
+    if (confirm("Tem certeza que deseja excluir a questão " + (index + 1) + "?")) {
+        dados.splice(index, 1);
+        localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+        
+        if (index >= dados.length) index = Math.max(0, dados.length - 1);
+        
+        alert("Questão removida!");
+        mostrar();
+    }
+}
+
+function mostrar() {
+    const dados = obterDados();
+    const indicador = document.getElementById("indicador");
+    const visor = document.getElementById("conteudoVisor");
+
+    if (dados.length === 0) {
+        visor.innerHTML = "Banco vazio.";
+        indicador.innerText = "0 / 0";
+        return;
+    }
+
+    let q = dados[index];
+    indicador.innerText = `${index + 1} / ${dados.length}`;
+
+    visor.innerHTML = `
+        <div class='campo'><strong>ID Jogo:</strong> ${q.nquestaojogo}</div>
+        <div class='campo'><strong>Matéria:</strong> ${q.materia} (${q.dificuldade})</div>
+        <div class='campo'>${q.questao.replace(/\n/g, '<br>')}</div>
+        <div class='campo'><strong>Resposta:</strong> ${q.resposta} | <strong>Puzzle:</strong> ${q.puzzle}</div>
+    `;
+
+    nquestao.value = q.nquestao;
+    nquestaojogo.value = q.nquestaojogo;
+    questao.value = q.questao;
+    materia.value = q.materia;
+    dificuldade.value = q.dificuldade;
+    resposta.value = q.resposta;
+    puzzle.value = q.puzzle;
+}
+
+// Funções de SQL
+importarSQL.onclick = () => arquivoImportar.click();
+arquivoImportar.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const sql = e.target.result;
+        const regex = /INSERT INTO\s+perguntas[\s\S]*?VALUES\s*\(([\s\S]*?)\);/gi;
+        let match, dados = [];
+        while ((match = regex.exec(sql)) !== null) {
+            let linha = match[1], campos = [], atual = "", aspas = false;
+            for (let i = 0; i < linha.length; i++) {
+                let c = linha[i];
+                if (c === "'" && linha[i - 1] !== "\\") aspas = !aspas;
+                if (c === "," && !aspas) { campos.push(atual); atual = ""; } 
+                else { atual += c; }
+            }
+            campos.push(atual);
+            campos = campos.map(c => c.trim().replace(/^'|'$/g, ""));
+            dados.push({
+                nquestao: campos[1]||"", nquestaojogo: campos[2]||"", questao: campos[3]||"",
+                materia: campos[4]||"", dificuldade: campos[5]||"", resposta: campos[6]||"",
+                puzzle: campos[7]||""
+            });
+        }
+        localStorage.setItem("bancoQuestoes", JSON.stringify(dados));
+        index = 0;
+        mostrar();
+        alert("✅ Importado!");
+    };
+    reader.readAsText(file);
+};
+
+exportarSQL.onclick = () => {
+    const dados = obterDados();
+    let sql = "";
+    dados.forEach((q, i) => {
+        sql += `INSERT INTO perguntas VALUES (${i + 1},'${q.nquestao}','${q.nquestaojogo}','${q.questao}','${q.materia}','${q.dificuldade}','${q.resposta}','${q.puzzle}','');\n`;
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([sql]));
+    a.download = "banco.sql";
+    a.click();
+};
+
+mostrar();
+</script>
+
+</body>
+</html>    mostrar();
 }
 
 function salvarNovo() {
